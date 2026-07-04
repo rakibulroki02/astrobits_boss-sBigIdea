@@ -1,0 +1,137 @@
+{
+  "version": 1,
+  "author": "Office Monitor Team",
+  "editor": "wokwi",
+  "parts": [
+    { "type": "wokwi-esp32-devkit-v1", "id": "esp", "top": 196.7, "left": -120.2, "attrs": {} },
+    { "type": "wokwi-breadboard-half", "id": "bb1", "top": -108.6, "left": 166, "attrs": {} },
+    { "type": "wokwi-potentiometer", "id": "pot1", "top": -20.5, "left": -29, "attrs": {} },
+    { "type": "wokwi-relay-module", "id": "relayFan1", "top": -67, "left": 643.2, "attrs": {} },
+    {
+      "type": "wokwi-resistor",
+      "id": "resistorFan1",
+      "top": -67,
+      "left": 823.2,
+      "attrs": { "value": "330" }
+    },
+    {
+      "type": "wokwi-led",
+      "id": "ledFan1",
+      "top": -70.8,
+      "left": 906.2,
+      "attrs": { "color": "blue" }
+    },
+    { "type": "wokwi-relay-module", "id": "relayFan2", "top": 38.6, "left": 806.4, "attrs": {} },
+    {
+      "type": "wokwi-resistor",
+      "id": "resistorFan2",
+      "top": 38.6,
+      "left": 986.4,
+      "attrs": { "value": "330" }
+    },
+    {
+      "type": "wokwi-led",
+      "id": "ledFan2",
+      "top": 38.6,
+      "left": 1066.4,
+      "attrs": { "color": "blue" }
+    },
+    { "type": "wokwi-relay-module", "id": "relayLight1", "top": 134.6, "left": 1008, "attrs": {} },
+    {
+      "type": "wokwi-resistor",
+      "id": "resistorLight1",
+      "top": 134.6,
+      "left": 1188,
+      "attrs": { "value": "330" }
+    },
+    {
+      "type": "wokwi-led",
+      "id": "ledLight1",
+      "top": 130.8,
+      "left": 1271,
+      "attrs": { "color": "red" }
+    },
+    {
+      "type": "wokwi-relay-module",
+      "id": "relayLight2",
+      "top": 278.6,
+      "left": 835.2,
+      "attrs": {}
+    },
+    {
+      "type": "wokwi-resistor",
+      "id": "resistorLight2",
+      "top": 278.6,
+      "left": 1015.2,
+      "attrs": { "value": "330" }
+    },
+    {
+      "type": "wokwi-led",
+      "id": "ledLight2",
+      "top": 274.8,
+      "left": 1098.2,
+      "attrs": { "color": "red" }
+    },
+    { "type": "wokwi-relay-module", "id": "relayLight3", "top": 365, "left": 652.8, "attrs": {} },
+    {
+      "type": "wokwi-resistor",
+      "id": "resistorLight3",
+      "top": 365,
+      "left": 832.8,
+      "attrs": { "value": "330" }
+    },
+    {
+      "type": "wokwi-led",
+      "id": "ledLight3",
+      "top": 361.2,
+      "left": 915.8,
+      "attrs": { "color": "red" }
+    }
+  ],
+  "connections": [
+    [ "esp:TX0", "$serialMonitor:RX", "", [] ],
+    [ "esp:RX0", "$serialMonitor:TX", "", [] ],
+    [ "esp:VIN", "bb1:bp.1", "red", [] ],
+    [ "esp:GND.1", "bb1:bn.1", "black", [] ],
+    [ "pot1:VCC", "bb1:bp.3", "red", [] ],
+    [ "pot1:GND", "bb1:bn.3", "black", [] ],
+    [ "pot1:SIG", "esp:D34", "green", [] ],
+    [ "bb1:bp.5", "relayFan1:VCC", "red", [] ],
+    [ "bb1:bp.7", "relayFan2:VCC", "red", [] ],
+    [ "bb1:bp.9", "relayLight1:VCC", "red", [] ],
+    [ "bb1:bp.11", "relayLight2:VCC", "red", [] ],
+    [ "bb1:bp.13", "relayLight3:VCC", "red", [] ],
+    [ "bb1:bn.5", "relayFan1:GND", "black", [] ],
+    [ "bb1:bn.7", "relayFan2:GND", "black", [] ],
+    [ "bb1:bn.9", "relayLight1:GND", "black", [] ],
+    [ "bb1:bn.11", "relayLight2:GND", "black", [] ],
+    [ "bb1:bn.13", "relayLight3:GND", "black", [] ],
+    [ "esp:D13", "relayFan1:IN", "blue", [] ],
+    [ "esp:D12", "relayFan2:IN", "blue", [] ],
+    [ "esp:D14", "relayLight1:IN", "blue", [] ],
+    [ "esp:D27", "relayLight2:IN", "blue", [] ],
+    [ "esp:D26", "relayLight3:IN", "blue", [] ],
+    [ "relayFan1:COM", "bb1:bp.15", "red", [] ],
+    [ "relayFan1:NO", "resistorFan1:1", "orange", [] ],
+    [ "resistorFan1:2", "ledFan1:A", "orange", [] ],
+    [ "ledFan1:C", "bb1:bn.15", "black", [] ],
+    [ "relayFan2:COM", "bb1:bp.17", "red", [] ],
+    [ "relayFan2:NO", "resistorFan2:1", "orange", [] ],
+    [ "resistorFan2:2", "ledFan2:A", "orange", [] ],
+    [ "ledFan2:C", "bb1:bn.17", "black", [] ],
+    [ "relayLight1:COM", "bb1:bp.19", "red", [] ],
+    [ "relayLight1:NO", "resistorLight1:1", "orange", [] ],
+    [ "resistorLight1:2", "ledLight1:A", "orange", [] ],
+    [ "ledLight1:C", "bb1:bn.19", "black", [] ],
+    [ "relayLight2:COM", "bb1:bp.21", "red", [] ],
+    [ "relayLight2:NO", "resistorLight2:1", "orange", [] ],
+    [ "resistorLight2:2", "ledLight2:A", "orange", [] ],
+    [ "ledLight2:C", "bb1:bn.21", "black", [] ],
+    [ "relayLight3:COM", "bb1:bp.23", "red", [] ],
+    [ "relayLight3:NO", "resistorLight3:1", "orange", [] ],
+    [ "resistorLight3:2", "ledLight3:A", "orange", [] ],
+    [ "ledLight3:C", "bb1:bn.23", "black", [] ]
+  ],
+  "serialMonitor": { "display": "auto", "newline": "lf" },
+  "dependencies": {}
+}
