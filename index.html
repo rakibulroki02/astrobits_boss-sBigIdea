@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Office - Live Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom Dark Mode Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #1e293b; border-radius: 4px; margin-top: 4px; margin-bottom: 4px; }
+        ::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #64748b; }
+
+        /* Blueprint & Floor Plan Styles */
+        body { background-color: #0f172a; color: white; }
+        .wall { border: 6px solid #334155; }
+        .room-floor { background-color: #cbd5e1; position: relative; overflow: hidden; }
+        .hallway-floor { background-color: #e2e8f0; }
+        
+        /* Furniture Props */
+        .desk { width: 60px; height: 40px; background-color: #8b5a2b; border-radius: 4px; border: 2px solid #5c3a18; }
+        .sofa { width: 40px; height: 100px; background-color: #94a3b8; border-radius: 8px; border: 2px solid #64748b; }
+        
+        /* Device Animations */
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        
+        /* Active Device Highlight Animation (Radar Ping) */
+        @keyframes flash-active {
+            0% { filter: drop-shadow(0 0 30px #3b82f6) brightness(2); transform: scale(1.8); z-index: 50; }
+            100% { filter: drop-shadow(0 0 0px transparent) brightness(1); transform: scale(1); z-index: 10; }
+        }
+        .flash-update { animation: flash-active 1s ease-out; }
+
+        /* PNG Fan Styles */
+        .fan { width: 32px; height: 32px; position: absolute; transition: all 0.3s ease; z-index: 10; }
+        .fan-on { animation: spin 0.8s linear infinite; filter: drop-shadow(0 0 8px rgba(59,130,246,0.8)) brightness(1.2); }
+        .fan-off { filter: grayscale(100%) opacity(40%); }
+        
+        /* Light Styles (Emoji) */
+        .light { font-size: 1.5rem; position: absolute; transition: all 0.3s ease; z-index: 10;}
+        .light-on { color: #fef08a; filter: drop-shadow(0 0 15px #eab308) drop-shadow(0 0 30px #eab308); transform: scale(1.2); }
+        .light-off { color: #94a3b8; opacity: 0.5; }
+    </style>
+</head>
+<body class="p-4 md:p-8 flex flex-col items-center min-h-screen font-sans">
+
+    <header class="w-full max-w-6xl flex justify-between items-center mb-8 bg-slate-800 p-4 rounded-xl border border-slate-700 shadow-xl">
+        <div>
+            <h1 class="text-2xl font-bold text-blue-400">Office Live Monitor</h1>
+            <p class="text-sm text-slate-400 mt-1">Simulated Time: <span id="sim-time" class="font-mono text-white font-bold bg-blue-900 px-2 py-1 rounded">--:--</span></p>
+        </div>
+        <div class="text-right">
+            <h2 class="text-xs uppercase text-slate-400 tracking-wider">Total Power Draw</h2>
+            <div class="text-3xl font-mono text-green-400 font-bold" id="total-power">0.0 W</div>
+        </div>
+    </header>
+
+    <div class="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <div class="lg:col-span-2 flex flex-col gap-6">
+            
+            <main class="w-full bg-slate-900 p-2 rounded-lg shadow-2xl wall">
+                <div class="grid grid-cols-3 gap-2 h-[400px]">
+                    
+                    <div class="room-floor wall flex flex-col justify-between p-2">
+                        <span class="text-slate-800 font-bold text-xs uppercase opacity-50 absolute top-2 left-2 z-20">Drawing Room</span>
+                        <span class="text-slate-800 font-mono text-xs absolute bottom-2 left-2 font-bold z-20" id="power-Drawing Room">0W</span>
+                        
+                        <div class="sofa absolute left-4 top-20"></div>
+                        
+                        <div id="Drawing Room-light_1" class="light light-off" style="top: 10%; left: 20%;">💡</div>
+                        <div id="Drawing Room-light_2" class="light light-off" style="top: 10%; right: 20%;">💡</div>
+                        <div id="Drawing Room-light_3" class="light light-off" style="bottom: 15%; left: 45%;">💡</div>
+                        
+                        <img src="fan.png" id="Drawing Room-fan_1" class="fan fan-off" style="top: 15%; left: 45%;" alt="Fan">
+                        <img src="fan.png" id="Drawing Room-fan_2" class="fan fan-off" style="bottom: 30%; left: 45%;" alt="Fan">
+                    </div>
+
+                    <div class="room-floor wall flex flex-col justify-between p-2">
+                        <span class="text-slate-800 font-bold text-xs uppercase opacity-50 absolute top-2 left-2 z-20">Work Room 1</span>
+                        <span class="text-slate-800 font-mono text-xs absolute bottom-2 left-2 font-bold z-20" id="power-Work Room 1">0W</span>
+                        
+                        <div class="desk absolute top-20 left-10"></div>
+                        <div class="desk absolute top-20 right-10"></div>
+                        <div class="desk absolute bottom-20 left-10"></div>
+                        <div class="desk absolute bottom-20 right-10"></div>
+
+                        <div id="Work Room 1-light_1" class="light light-off" style="top: 10%; left: 20%;">💡</div>
+                        <div id="Work Room 1-light_2" class="light light-off" style="top: 10%; right: 20%;">💡</div>
+                        <div id="Work Room 1-light_3" class="light light-off" style="bottom: 15%; left: 45%;">💡</div>
+                        
+                        <img src="fan.png" id="Work Room 1-fan_1" class="fan fan-off" style="top: 15%; left: 45%;" alt="Fan">
+                        <img src="fan.png" id="Work Room 1-fan_2" class="fan fan-off" style="bottom: 35%; left: 45%;" alt="Fan">
+                    </div>
+
+                    <div class="room-floor wall flex flex-col justify-between p-2">
+                        <span class="text-slate-800 font-bold text-xs uppercase opacity-50 absolute top-2 left-2 z-20">Work Room 2</span>
+                        <span class="text-slate-800 font-mono text-xs absolute bottom-2 left-2 font-bold z-20" id="power-Work Room 2">0W</span>
+                        
+                        <div class="desk absolute top-20 left-10"></div>
+                        <div class="desk absolute top-20 right-10"></div>
+                        <div class="desk absolute bottom-20 left-10"></div>
+                        <div class="desk absolute bottom-20 right-10"></div>
+
+                        <div id="Work Room 2-light_1" class="light light-off" style="top: 10%; left: 20%;">💡</div>
+                        <div id="Work Room 2-light_2" class="light light-off" style="top: 10%; right: 20%;">💡</div>
+                        <div id="Work Room 2-light_3" class="light light-off" style="bottom: 15%; left: 45%;">💡</div>
+                        
+                        <img src="fan.png" id="Work Room 2-fan_1" class="fan fan-off" style="top: 15%; left: 45%;" alt="Fan">
+                        <img src="fan.png" id="Work Room 2-fan_2" class="fan fan-off" style="bottom: 35%; left: 45%;" alt="Fan">
+                    </div>
+                </div>
+
+                <div class="hallway-floor wall h-24 mt-2 relative flex justify-center items-end pb-1">
+                    <span class="text-slate-800 font-bold text-xs uppercase opacity-50 absolute top-2 left-2">Hallway</span>
+                    <div class="text-slate-600 font-bold text-sm bg-slate-300 px-4 py-1 rounded-t-lg border-t-2 border-l-2 border-r-2 border-slate-400">⬆️ ENTRY DOOR</div>
+                </div>
+            </main>
+
+            <div class="w-full bg-slate-800 p-4 rounded-xl border border-red-900/50 shadow-xl">
+                <h2 class="text-red-400 font-bold mb-3 flex items-center gap-2">⚠️ Active System Alerts</h2>
+                <div id="alerts-container" class="space-y-2 h-32 overflow-y-auto pr-3">
+                    <div class="text-slate-500 text-sm italic">Waiting for anomalies...</div>
+                </div>
+            </div>
+
+        </div>
+
+        <aside class="w-full bg-slate-900 p-6 rounded-xl border border-slate-700 shadow-xl flex flex-col h-[600px]">
+            <h2 class="text-xl font-bold text-slate-300 mb-4 border-b border-slate-700 pb-2 shrink-0">Live Status Panel</h2>
+            
+            <div class="flex-grow space-y-4 overflow-y-auto pr-3">
+                
+                <div class="bg-slate-800 p-4 rounded-lg border border-slate-700">
+                    <h3 class="font-bold text-sm text-slate-400 uppercase tracking-wider mb-3">Drawing Room</h3>
+                    <div class="space-y-2" id="status-panel-Drawing Room">
+                        <div class="text-slate-500 text-sm italic">Connecting...</div>
+                    </div>
+                </div>
+
+                <div class="bg-slate-800 p-4 rounded-lg border border-slate-700">
+                    <h3 class="font-bold text-sm text-slate-400 uppercase tracking-wider mb-3">Work Room 1</h3>
+                    <div class="space-y-2" id="status-panel-Work Room 1">
+                        <div class="text-slate-500 text-sm italic">Connecting...</div>
+                    </div>
+                </div>
+
+                <div class="bg-slate-800 p-4 rounded-lg border border-slate-700">
+                    <h3 class="font-bold text-sm text-slate-400 uppercase tracking-wider mb-3">Work Room 2</h3>
+                    <div class="space-y-2" id="status-panel-Work Room 2">
+                        <div class="text-slate-500 text-sm italic">Connecting...</div>
+                    </div>
+                </div>
+
+            </div>
+        </aside>
+
+    </div>
+
+    <script>
+        const ws = new WebSocket("ws://127.0.0.1:8000/ws");
+        
+        let previousState = {}; 
+        
+        ws.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            
+            // 1. Update Top Bar
+            document.getElementById("total-power").innerText = data.total_power_w.toFixed(1) + " W";
+            document.getElementById("sim-time").innerText = data.simulated_time;
+
+            // 2. Update Alerts Panel
+            const alertsContainer = document.getElementById("alerts-container");
+            if (data.alerts.length === 0) {
+                alertsContainer.innerHTML = '<div class="text-green-500 text-sm">✅ All clear. Office hours normal.</div>';
+            } else {
+                alertsContainer.innerHTML = data.alerts.map(alert => 
+                    `<div class="bg-red-900/40 text-red-200 p-2 rounded text-sm border border-red-800/50">${alert}</div>`
+                ).join('');
+            }
+
+            // 3. Update Rooms, Floor Plan Devices, and Status Panel
+            for (const [roomName, devices] of Object.entries(data.rooms)) {
+                
+                const powerLabel = document.getElementById(`power-${roomName}`);
+                if (powerLabel) powerLabel.innerText = data.room_power_w[roomName].toFixed(1) + " W";
+
+                if (!previousState[roomName]) previousState[roomName] = {};
+
+                let statusHTML = ""; 
+
+                for (const [deviceName, info] of Object.entries(devices)) {
+                    const currentState = info.status;
+                    const isOn = currentState === "on";
+                    const isFan = deviceName.includes('fan');
+                    const cleanName = deviceName.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
+                    
+                    // --- MAP VISUALS ---
+                    const el = document.getElementById(`${roomName}-${deviceName}`);
+                    if (el) {
+                        if (previousState[roomName][deviceName] && previousState[roomName][deviceName] !== currentState) {
+                            el.classList.remove('flash-update');
+                            void el.offsetWidth; 
+                            el.classList.add('flash-update');
+                        }
+                        
+                        previousState[roomName][deviceName] = currentState;
+
+                        el.className = isFan ? 'fan' : 'light'; 
+                        if (el.classList.contains('flash-update')) el.classList.add('flash-update'); 
+                        
+                        if (isOn) {
+                            el.classList.add(isFan ? 'fan-on' : 'light-on');
+                        } else {
+                            el.classList.add(isFan ? 'fan-off' : 'light-off');
+                        }
+                    }
+
+                    // --- STATUS PANEL HTML ---
+                    const badgeColor = isOn ? "bg-green-600 text-white shadow-[0_0_8px_rgba(22,163,74,0.6)]" : "bg-slate-700 text-slate-400";
+                    const textState = isOn ? "ON" : "OFF";
+                    const icon = isFan ? "🌀" : "💡";
+
+                    statusHTML += `
+                        <div class="flex justify-between items-center bg-slate-900 p-2 rounded border border-slate-700">
+                            <span class="text-slate-300 text-sm flex items-center gap-2">
+                                <span>${icon}</span> ${cleanName}
+                            </span>
+                            <span class="text-xs font-bold px-2 py-1 rounded w-10 text-center uppercase tracking-wide ${badgeColor}">
+                                ${textState}
+                            </span>
+                        </div>
+                    `;
+                }
+
+                const statusPanelEl = document.getElementById(`status-panel-${roomName}`);
+                if (statusPanelEl) {
+                    statusPanelEl.innerHTML = statusHTML;
+                }
+            }
+        };
+
+        ws.onclose = () => {
+            document.getElementById("sim-time").innerText = "OFFLINE";
+            document.getElementById("sim-time").classList.replace("bg-blue-900", "bg-red-900");
+        };
+    </script>
+</body>
+</html>
