@@ -1,8 +1,6 @@
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request
 from fastapi.middleware.cors import CORSMiddleware
-import asyncio
-import random
-import time
+from starlette.requests import ClientDisconnect
 import datetime
 
 app = FastAPI()
@@ -17,11 +15,24 @@ class ConnectionManager:
         self.active_connections.append(websocket)
 
     def disconnect(self, websocket: WebSocket):
-        self.active_connections.remove(websocket)
+        if websocket in self.active_connections:
+            self.active_connections.remove(websocket)
 
     async def broadcast(self, message: dict):
+        # FIX: a single stale/half-closed browser tab (e.g. from a page
+        # refresh) could previously stall this loop indefinitely, which in
+        # turn could delay the server from reading the next incoming POST
+        # from the ESP32 -- looking exactly like a dropped connection there.
+        # Now we isolate failures per-connection and prune dead ones.
+        dead_connections = []
         for connection in self.active_connections:
-            await connection.send_json(message)
+            try:
+                await connection.send_json(message)
+            except Exception:
+                dead_connections.append(connection)
+
+        for connection in dead_connections:
+            self.disconnect(connection)
 
 manager = ConnectionManager()
 
@@ -34,139 +45,110 @@ app.add_middleware(
 )
 
 # --- IN-MEMORY STATE ---
-office_state = {}
-rooms = ["Drawing Room", "Work Room 1", "Work Room 2"]
+# This holds the latest state reported by Wokwi
+office_state = {
+    "Drawing Room": {
+        "fan_1": {"status": "off", "wattage": 0, "last_updated": "Startup"},
+        "fan_2": {"status": "off", "wattage": 0, "last_updated": "Startup"},
+        "light_1": {"status": "off", "wattage": 0, "last_updated": "Startup"},
+        "light_2": {"status": "off", "wattage": 0, "last_updated": "Startup"},
+        "light_3": {"status": "off", "wattage": 0, "last_updated": "Startup"},
+    },
+    "Work Room 1": {
+        "fan_1": {"status": "off", "wattage": 0, "last_updated": "Startup"},
+        "fan_2": {"status": "off", "wattage": 0, "last_updated": "Startup"},
+        "light_1": {"status": "off", "wattage": 0, "last_updated": "Startup"},
+        "light_2": {"status": "off", "wattage": 0, "last_updated": "Startup"},
+        "light_3": {"status": "off", "wattage": 0, "last_updated": "Startup"},
+    },
+    "Work Room 2": {
+        "fan_1": {"status": "off", "wattage": 0, "last_updated": "Startup"},
+        "fan_2": {"status": "off", "wattage": 0, "last_updated": "Startup"},
+        "light_1": {"status": "off", "wattage": 0, "last_updated": "Startup"},
+        "light_2": {"status": "off", "wattage": 0, "last_updated": "Startup"},
+        "light_3": {"status": "off", "wattage": 0, "last_updated": "Startup"},
+    }
+}
 
-for room in rooms:
-    office_state[room] = {
-        "fan_1": {"status": "off", "wattage": 60, "last_updated": "Startup"},
-        "fan_2": {"status": "off", "wattage": 60, "last_updated": "Startup"},
-        "light_1": {"status": "off", "wattage": 15, "last_updated": "Startup"},
-        "light_2": {"status": "off", "wattage": 15, "last_updated": "Startup"},
-        "light_3": {"status": "off", "wattage": 15, "last_updated": "Startup"},
+# --- WOKWI POST ENDPOINT (The Receiver) ---
+@app.post("/api/update")
+async def receive_wokwi_update(request: Request):
+    global office_state
+
+    # FIX: if the ESP32 / tunnel drops mid-request (flaky network across the
+    # Wokwi Gateway -> ngrok chain), this used to raise an unhandled
+    # ClientDisconnect and print a scary traceback. Now we just log it and
+    # skip this one update -- the next telemetry send will catch things up.
+    try:
+        payload = await request.json()
+    except ClientDisconnect:
+        print("⚠️  Client disconnected before sending full body -- skipping this update.")
+        return {"status": "error", "message": "client disconnected"}
+    except Exception as e:
+        print(f"⚠️  Failed to parse incoming payload: {e}")
+        return {"status": "error", "message": "invalid payload"}
+
+    # Update the internal state with Wokwi's data
+    if "rooms" in payload:
+        office_state = payload["rooms"]
+    else:
+        # If Wokwi just sends the rooms object directly
+        office_state = payload
+
+    # 1. Calculate live totals and alerts based on the real-world time
+    current_time_str = datetime.datetime.now().strftime("%I:%M %p")
+    current_hour = datetime.datetime.now().hour
+
+    # You can change these hours to trigger alerts during the video demo
+    is_after_hours = current_hour < 9 or current_hour >= 17
+
+    total_power = 0
+    room_power = {"Drawing Room": 0, "Work Room 1": 0, "Work Room 2": 0}
+    active_alerts = []
+
+    for room, devices in office_state.items():
+        room_total = 0
+        for device_name, device_info in devices.items():
+            room_total += float(device_info.get("wattage", 0))
+
+            # Check for Alerts
+            if device_info.get("status") == "on" and is_after_hours:
+                clean_name = device_name.replace('_', ' ').title()
+                alert_msg = f"[{current_time_str}] ALERT: {clean_name} left ON in {room} outside office hours!"
+                active_alerts.append(alert_msg)
+
+        room_power[room] = round(room_total, 1)
+        total_power += room_total
+
+    # 2. Build the exact payload the HTML Dashboard expects
+    live_payload = {
+        "simulated_time": current_time_str,
+        "total_power_w": round(total_power, 1),
+        "room_power_w": room_power,
+        "alerts": active_alerts,
+        "rooms": office_state
     }
 
-# Tracks the exact time a room had ALL its devices turned on
-room_all_on_tracker = {"Drawing Room": None, "Work Room 1": None, "Work Room 2": None}
+    # 3. Fire it to the Web Dashboard instantly via WebSockets
+    await manager.broadcast(live_payload)
 
-# --- BACKGROUND SIMULATOR (Final Version with All Alerts) ---
-async def simulate_device_activity():
-    print("🚀 Background simulator is STARTING UP...", flush=True)
-    simulated_time = datetime.datetime.strptime("08:00 AM", "%I:%M %p")
-    
-    while True:
-        try:
-            await asyncio.sleep(5) 
-            
-            # Advance time by 15 minutes every 2 seconds
-            simulated_time += datetime.timedelta(minutes=5)
-            current_time_str = simulated_time.strftime("%I:%M %p")
-            
-            # 1. Randomly toggle a device
-            random_room = random.choice(rooms)
-            random_device = random.choice(list(office_state[random_room].keys()))
-            
-            current_status = office_state[random_room][random_device]["status"]
-            
-            # If it's night time (after 6 PM), bias heavily towards turning things OFF
-            if simulated_time.hour >= 18 or simulated_time.hour < 8:
-                new_status = "off" if random.random() < 0.8 else "on"
-            else:
-                new_status = "on" if current_status == "off" else "off"
-            
-            base_w = 60 if "fan" in random_device else 15
-            
-            if new_status == "on":
-                live_wattage = round(base_w + random.uniform(-1.5, 1.5), 1)
-            else:
-                live_wattage = 0
-
-            # Update the state dictionary
-            office_state[random_room][random_device]["status"] = new_status
-            office_state[random_room][random_device]["wattage"] = live_wattage
-            office_state[random_room][random_device]["last_updated"] = current_time_str
-            
-            # Print update to terminal
-            print(f"[{current_time_str}] DYNAMIC UPDATE: {random_room} {random_device} is now {new_status} ({live_wattage}W)", flush=True)
-            
-            # 2. Check for Alerts (Out of Office Hours & 2-Hour Rule)
-            active_alerts = []
-            is_after_hours = simulated_time.hour < 9 or simulated_time.hour >= 17
-            total_power = 0
-            room_power = {"Drawing Room": 0, "Work Room 1": 0, "Work Room 2": 0}
-            
-            for room, devices in office_state.items():
-                room_total = 0
-                all_devices_on = True # Assume true until we find an "off" device
-                
-                for device_name, device_info in devices.items():
-                    room_total += device_info["wattage"]
-                    
-                    if device_info["status"] == "on":
-                        # Alert 1: After Hours Check
-                        if is_after_hours:
-                            alert_msg = f"[{current_time_str}] ALERT: {device_name.replace('_', ' ').title()} left ON in {room} after hours!"
-                            active_alerts.append(alert_msg)
-                            print(f"🚨 {alert_msg}", flush=True)
-                    else:
-                        all_devices_on = False
-                
-                # Alert 2: The 2-Hour Continuous Check
-                if all_devices_on:
-                    # If this is the first time we noticed they are all on, start the timer
-                    if room_all_on_tracker[room] is None:
-                        room_all_on_tracker[room] = simulated_time
-                    else:
-                        # Check if it has been strictly more than 2 hours
-                        time_difference = simulated_time - room_all_on_tracker[room]
-                        if time_difference.total_seconds() > 7200: # 7200 seconds = 2 hours
-                            alert_msg = f"[{current_time_str}] ⚠️ WARNING: ALL devices in {room} have been ON for over 2 hours!"
-                            active_alerts.append(alert_msg)
-                            print(f"🚨 {alert_msg}", flush=True)
-                else:
-                    # If even one device is off, reset the timer
-                    room_all_on_tracker[room] = None
-                
-                room_power[room] = round(room_total, 1)
-                total_power += room_total
-            
-            # 3. Build the Payload for the Web Dashboard
-            live_payload = {
-                "simulated_time": current_time_str,
-                "total_power_w": round(total_power, 1),
-                "room_power_w": room_power,
-                "alerts": active_alerts,
-                "rooms": office_state
-            }
-            
-            # Broadcast to UI
-            await manager.broadcast(live_payload)
-
-        # If anything breaks, print the exact error!
-        except Exception as e:
-            print(f"❌ ERROR IN SIMULATOR: {e}", flush=True)
-            await asyncio.sleep(2) 
-
-@app.on_event("startup")
-async def startup_event():
-    print("⚡ FastAPI is starting up. Launching simulator...", flush=True)
-    asyncio.create_task(simulate_device_activity())
+    return {"status": "success", "message": "Data received and broadcasted to Dashboard!"}
 
 # --- REST API ENDPOINT (For the Discord Bot) ---
 @app.get("/api/state")
 async def get_state():
+    # The Discord Bot will hit this endpoint to get the latest state Wokwi sent us
     total_power = 0
     room_power = {"Drawing Room": 0, "Work Room 1": 0, "Work Room 2": 0}
-    
-    # Calculate live power consumption before sending the JSON
+
     for room, devices in office_state.items():
         room_total = 0
         for device_name, device_info in devices.items():
-            room_total += device_info["wattage"]
-        
+            room_total += float(device_info.get("wattage", 0))
+
         room_power[room] = round(room_total, 1)
         total_power += room_total
-                
+
     return {
         "total_power_w": round(total_power, 1),
         "room_power_w": room_power,
@@ -179,6 +161,6 @@ async def websocket_endpoint(websocket: WebSocket):
     await manager.connect(websocket)
     try:
         while True:
-            await websocket.receive_text() 
+            await websocket.receive_text()
     except WebSocketDisconnect:
         manager.disconnect(websocket)

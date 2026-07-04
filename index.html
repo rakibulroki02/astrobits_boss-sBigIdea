@@ -1,155 +1,385 @@
-<!DOCTYPE html>
+<!-- <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Smart Office - Live Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/PointerLockControls.js"></script>
+
     <style>
-        /* Custom Dark Mode Scrollbar */
-        ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: #1e293b; border-radius: 4px; margin-top: 4px; margin-bottom: 4px; }
-        ::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #64748b; }
-
-        /* Blueprint & Floor Plan Styles */
-        body { background-color: #0f172a; color: white; }
-        .wall { border: 6px solid #334155; }
-        .room-floor { background-color: #cbd5e1; position: relative; overflow: hidden; }
-        .hallway-floor { background-color: #e2e8f0; }
-        
-        /* Furniture Props */
-        .desk { width: 60px; height: 40px; background-color: #8b5a2b; border-radius: 4px; border: 2px solid #5c3a18; }
-        .sofa { width: 40px; height: 100px; background-color: #94a3b8; border-radius: 8px; border: 2px solid #64748b; }
-        
-        /* Device Animations */
-        @keyframes spin { 100% { transform: rotate(360deg); } }
-        
-        /* Active Device Highlight Animation (Radar Ping) */
-        @keyframes flash-active {
-            0% { filter: drop-shadow(0 0 30px #3b82f6) brightness(2); transform: scale(1.8); z-index: 50; }
-            100% { filter: drop-shadow(0 0 0px transparent) brightness(1); transform: scale(1); z-index: 10; }
+        ::-webkit-scrollbar {
+            width: 8px;
         }
-        .flash-update { animation: flash-active 1s ease-out; }
 
-        /* PNG Fan Styles */
-        .fan { width: 32px; height: 32px; position: absolute; transition: all 0.3s ease; z-index: 10; }
-        .fan-on { animation: spin 0.8s linear infinite; filter: drop-shadow(0 0 8px rgba(59,130,246,0.8)) brightness(1.2); }
-        .fan-off { filter: grayscale(100%) opacity(40%); }
-        
-        /* Light Styles (Emoji) */
-        .light { font-size: 1.5rem; position: absolute; transition: all 0.3s ease; z-index: 10;}
-        .light-on { color: #fef08a; filter: drop-shadow(0 0 15px #eab308) drop-shadow(0 0 30px #eab308); transform: scale(1.2); }
-        .light-off { color: #94a3b8; opacity: 0.5; }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 4px;
+            margin-top: 4px;
+            margin-bottom: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        body {
+            background-color: #f8fafc;
+            color: #1e293b;
+            overflow-x: hidden;
+            margin: 0;
+        }
+
+        /* 2D Floor Plan Styles (Beige Walls) */
+        .wall {
+            border: 6px solid #d4b899;
+        }
+
+        .room-floor {
+            background-color: #e2e8f0;
+            position: relative;
+            overflow: hidden;
+            background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+
+        .drawing-room-floor {
+            background-color: #f1f5f9;
+        }
+
+        .work-room-floor {
+            background-color: #e5e7eb;
+        }
+
+        .hallway-floor {
+            background-color: #f8fafc;
+        }
+
+        .desk {
+            width: 45px;
+            height: 35px;
+            background-color: #d97706;
+            border-radius: 2px;
+            border: 2px solid #b45309;
+            box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .chair {
+            width: 20px;
+            height: 20px;
+            background-color: #475569;
+            border-radius: 50%;
+            position: absolute;
+        }
+
+        .sofa {
+            width: 30px;
+            height: 90px;
+            background-color: #94a3b8;
+            border-radius: 5px;
+            border: 2px solid #64748b;
+        }
+
+        .coffee-table {
+            width: 35px;
+            height: 50px;
+            background-color: #78350f;
+            border-radius: 2px;
+        }
+
+        .plant {
+            width: 25px;
+            height: 25px;
+            background-color: #22c55e;
+            border-radius: 50%;
+            border: 2px solid #166534;
+        }
+
+        @keyframes spin {
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .fan {
+            width: 40px;
+            height: 40px;
+            position: absolute;
+            transition: all 0.3s ease;
+            z-index: 20;
+            transform-origin: center;
+            filter: drop-shadow(0px 5px 5px rgba(0, 0, 0, 0.2));
+        }
+
+        .fan-on {
+            animation: spin 0.5s linear infinite;
+            filter: drop-shadow(0 0 12px rgba(59, 130, 246, 0.5)) brightness(1.1);
+        }
+
+        .fan-off {
+            filter: grayscale(100%) opacity(40%);
+        }
+
+        /* Light Styles (Yellow Glow) */
+        .light {
+            width: 24px;
+            height: 24px;
+            background-color: #f1f5f9;
+            border-radius: 50%;
+            position: absolute;
+            transition: all 0.3s ease;
+            z-index: 15;
+            border: 2px solid #ca8a04;
+        }
+
+        .light-on {
+            background-color: #ffd700;
+            box-shadow: 0 0 20px 10px rgba(255, 215, 0, 0.6), inset 0 0 10px #ffffff;
+        }
+
+        .light-off {
+            background-color: #f1f5f9;
+            border-color: #cbd5e1;
+            box-shadow: none;
+            opacity: 0.6;
+        }
+
+        /* 3D WebGL Overlay */
+        #webgl-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: #87CEEB;
+            z-index: 100;
+            display: none;
+        }
+
+        #crosshair {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 20px;
+            height: 20px;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            z-index: 101;
+            color: rgba(0, 0, 0, 0.5);
+            font-size: 24px;
+            font-weight: bold;
+            line-height: 20px;
+            text-align: center;
+        }
+
+        #instructions {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 255, 255, 0.9);
+            padding: 15px;
+            border-radius: 8px;
+            color: #1e293b;
+            text-align: center;
+            z-index: 102;
+            font-family: monospace;
+            border: 1px solid #3b82f6;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Fixed Exit Button: Moved to Bottom Left with High Z-Index */
+        .exit-btn {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            z-index: 105;
+            background: #ef4444;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            border: none;
+            font-size: 1.1rem;
+            transition: background 0.2s;
+        }
+
+        .exit-btn:hover {
+            background: #dc2626;
+        }
     </style>
 </head>
+
 <body class="p-4 md:p-8 flex flex-col items-center min-h-screen font-sans">
 
-    <header class="w-full max-w-6xl flex justify-between items-center mb-8 bg-slate-800 p-4 rounded-xl border border-slate-700 shadow-xl">
-        <div>
-            <h1 class="text-2xl font-bold text-blue-400">Office Live Monitor</h1>
-            <p class="text-sm text-slate-400 mt-1">Simulated Time: <span id="sim-time" class="font-mono text-white font-bold bg-blue-900 px-2 py-1 rounded">--:--</span></p>
+    <div id="webgl-overlay">
+        <div id="instructions">
+            <span class="text-blue-600 font-bold text-lg">Click anywhere to start</span><br />
+            Move: W, A, S, D or Arrows<br />
+            Look: Mouse<br />
+            Exit: ESC
         </div>
-        <div class="text-right">
-            <h2 class="text-xs uppercase text-slate-400 tracking-wider">Total Power Draw</h2>
-            <div class="text-3xl font-mono text-green-400 font-bold" id="total-power">0.0 W</div>
+        <div id="crosshair">+</div>
+
+        <button class="exit-btn" onclick="exit3DView()">🔙 Back to 2D View</button>
+
+        <div id="location-hud"
+            style="position: absolute; top: 20px; left: 20px; z-index: 103; background: rgba(255,255,255,0.9); padding: 10px 20px; border-radius: 8px; border-left: 4px solid #3b82f6; font-weight: bold; color: #1e293b; box-shadow: 0 4px 6px rgba(0,0,0,0.1); font-size: 1.25rem;">
+            📍 Hallway (All Rooms)
+        </div>
+    </div>
+
+    <header
+        class="w-full max-w-7xl flex justify-between items-center mb-6 bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+        <div class="flex items-center gap-4">
+            <img src="bot.png" alt="AI Bot"
+                class="w-14 h-14 rounded-full bg-slate-100 border-2 border-blue-400 shadow-sm object-cover">
+            <div>
+                <h1 class="text-2xl font-bold text-blue-600">Office Live Monitor</h1>
+                <p class="text-sm text-slate-500 mt-1">Simulated Time: <span id="sim-time"
+                        class="font-mono text-white font-bold bg-blue-500 px-2 py-1 rounded">--:--</span></p>
+            </div>
+        </div>
+        <div class="flex items-center gap-6">
+            <button onclick="enter3DView()"
+                class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-6 rounded-lg transition-colors shadow flex items-center gap-2 border border-blue-400">
+                <span>🤖</span> Launch 3D Bot POV
+            </button>
+            <div class="text-right">
+                <h2 class="text-xs uppercase text-slate-400 tracking-wider">Total Power Draw</h2>
+                <div class="text-3xl font-mono text-green-500 font-bold" id="total-power">0.0 W</div>
+            </div>
         </div>
     </header>
 
-    <div class="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
-        <div class="lg:col-span-2 flex flex-col gap-6">
-            
-            <main class="w-full bg-slate-900 p-2 rounded-lg shadow-2xl wall">
-                <div class="grid grid-cols-3 gap-2 h-[400px]">
-                    
-                    <div class="room-floor wall flex flex-col justify-between p-2">
-                        <span class="text-slate-800 font-bold text-xs uppercase opacity-50 absolute top-2 left-2 z-20">Drawing Room</span>
-                        <span class="text-slate-800 font-mono text-xs absolute bottom-2 left-2 font-bold z-20" id="power-Drawing Room">0W</span>
-                        
-                        <div class="sofa absolute left-4 top-20"></div>
-                        
-                        <div id="Drawing Room-light_1" class="light light-off" style="top: 10%; left: 20%;">💡</div>
-                        <div id="Drawing Room-light_2" class="light light-off" style="top: 10%; right: 20%;">💡</div>
-                        <div id="Drawing Room-light_3" class="light light-off" style="bottom: 15%; left: 45%;">💡</div>
-                        
-                        <img src="fan.png" id="Drawing Room-fan_1" class="fan fan-off" style="top: 15%; left: 45%;" alt="Fan">
-                        <img src="fan.png" id="Drawing Room-fan_2" class="fan fan-off" style="bottom: 30%; left: 45%;" alt="Fan">
+    <div class="w-full max-w-7xl grid grid-cols-1 xl:grid-cols-4 gap-6">
+
+        <div class="xl:col-span-3 flex flex-col gap-6">
+            <main id="floor-plan-container"
+                class="floor-plan w-full bg-white p-3 rounded-lg shadow-sm wall border-slate-300">
+                <div class="grid grid-cols-3 gap-2 h-[450px]">
+                    <div class="room-floor drawing-room-floor wall flex flex-col p-2">
+                        <span
+                            class="text-slate-700 font-bold text-xs uppercase opacity-80 absolute top-2 left-1/2 transform -translate-x-1/2 z-10 bg-white/80 px-2 py-1 rounded shadow-sm">Drawing
+                            Room</span>
+                        <div class="sofa absolute left-3 top-1/4"></div>
+                        <div class="coffee-table absolute left-14 top-1/3 mt-2"></div>
+                        <div class="plant absolute top-3 left-3"></div>
+
+                        <div id="Drawing Room-light_1" class="light light-off" style="top: 8%; left: 25%;"></div>
+                        <div id="Drawing Room-light_2" class="light light-off" style="top: 8%; right: 25%;"></div>
+                        <div id="Drawing Room-light_3" class="light light-off"
+                            style="bottom: 15%; left: 50%; transform: translateX(-50%);"></div>
+
+                        <img src="fan.png" id="Drawing Room-fan_1" class="fan fan-off"
+                            style="top: 22%; left: 50%; margin-left: -20px;">
+                        <img src="fan.png" id="Drawing Room-fan_2" class="fan fan-off"
+                            style="bottom: 25%; left: 50%; margin-left: -20px;">
                     </div>
 
-                    <div class="room-floor wall flex flex-col justify-between p-2">
-                        <span class="text-slate-800 font-bold text-xs uppercase opacity-50 absolute top-2 left-2 z-20">Work Room 1</span>
-                        <span class="text-slate-800 font-mono text-xs absolute bottom-2 left-2 font-bold z-20" id="power-Work Room 1">0W</span>
-                        
-                        <div class="desk absolute top-20 left-10"></div>
-                        <div class="desk absolute top-20 right-10"></div>
-                        <div class="desk absolute bottom-20 left-10"></div>
-                        <div class="desk absolute bottom-20 right-10"></div>
+                    <div class="room-floor work-room-floor wall flex flex-col p-2">
+                        <span
+                            class="text-slate-700 font-bold text-xs uppercase opacity-80 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-10 bg-white/80 px-2 py-1 rounded shadow-sm">Work
+                            Room 1</span>
+                        <div class="desk absolute top-20 left-6"></div>
+                        <div class="chair absolute top-22 left-2" style="top: 85px;"></div>
+                        <div class="desk absolute top-20 right-6"></div>
+                        <div class="chair absolute top-22 right-2" style="top: 85px;"></div>
+                        <div class="desk absolute bottom-24 left-6"></div>
+                        <div class="chair absolute bottom-26 left-2" style="bottom: 105px;"></div>
+                        <div class="desk absolute bottom-24 right-6"></div>
+                        <div class="chair absolute bottom-26 right-2" style="bottom: 105px;"></div>
 
-                        <div id="Work Room 1-light_1" class="light light-off" style="top: 10%; left: 20%;">💡</div>
-                        <div id="Work Room 1-light_2" class="light light-off" style="top: 10%; right: 20%;">💡</div>
-                        <div id="Work Room 1-light_3" class="light light-off" style="bottom: 15%; left: 45%;">💡</div>
-                        
-                        <img src="fan.png" id="Work Room 1-fan_1" class="fan fan-off" style="top: 15%; left: 45%;" alt="Fan">
-                        <img src="fan.png" id="Work Room 1-fan_2" class="fan fan-off" style="bottom: 35%; left: 45%;" alt="Fan">
+                        <div id="Work Room 1-light_1" class="light light-off" style="top: 8%; left: 25%;"></div>
+                        <div id="Work Room 1-light_2" class="light light-off" style="top: 8%; right: 25%;"></div>
+                        <div id="Work Room 1-light_3" class="light light-off"
+                            style="bottom: 15%; left: 50%; transform: translateX(-50%);"></div>
+
+                        <img src="fan.png" id="Work Room 1-fan_1" class="fan fan-off"
+                            style="top: 22%; left: 50%; margin-left: -20px;">
+                        <img src="fan.png" id="Work Room 1-fan_2" class="fan fan-off"
+                            style="bottom: 25%; left: 50%; margin-left: -20px;">
                     </div>
 
-                    <div class="room-floor wall flex flex-col justify-between p-2">
-                        <span class="text-slate-800 font-bold text-xs uppercase opacity-50 absolute top-2 left-2 z-20">Work Room 2</span>
-                        <span class="text-slate-800 font-mono text-xs absolute bottom-2 left-2 font-bold z-20" id="power-Work Room 2">0W</span>
-                        
-                        <div class="desk absolute top-20 left-10"></div>
-                        <div class="desk absolute top-20 right-10"></div>
-                        <div class="desk absolute bottom-20 left-10"></div>
-                        <div class="desk absolute bottom-20 right-10"></div>
+                    <div class="room-floor work-room-floor wall flex flex-col p-2">
+                        <span
+                            class="text-slate-700 font-bold text-xs uppercase opacity-80 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-10 bg-white/80 px-2 py-1 rounded shadow-sm">Work
+                            Room 2</span>
+                        <div class="desk absolute top-20 left-6"></div>
+                        <div class="chair absolute top-22 left-2" style="top: 85px;"></div>
+                        <div class="desk absolute top-20 right-6"></div>
+                        <div class="chair absolute top-22 right-2" style="top: 85px;"></div>
+                        <div class="desk absolute bottom-24 left-6"></div>
+                        <div class="chair absolute bottom-26 left-2" style="bottom: 105px;"></div>
+                        <div class="desk absolute bottom-24 right-6"></div>
+                        <div class="chair absolute bottom-26 right-2" style="bottom: 105px;"></div>
 
-                        <div id="Work Room 2-light_1" class="light light-off" style="top: 10%; left: 20%;">💡</div>
-                        <div id="Work Room 2-light_2" class="light light-off" style="top: 10%; right: 20%;">💡</div>
-                        <div id="Work Room 2-light_3" class="light light-off" style="bottom: 15%; left: 45%;">💡</div>
-                        
-                        <img src="fan.png" id="Work Room 2-fan_1" class="fan fan-off" style="top: 15%; left: 45%;" alt="Fan">
-                        <img src="fan.png" id="Work Room 2-fan_2" class="fan fan-off" style="bottom: 35%; left: 45%;" alt="Fan">
+                        <div id="Work Room 2-light_1" class="light light-off" style="top: 8%; left: 25%;"></div>
+                        <div id="Work Room 2-light_2" class="light light-off" style="top: 8%; right: 25%;"></div>
+                        <div id="Work Room 2-light_3" class="light light-off"
+                            style="bottom: 15%; left: 50%; transform: translateX(-50%);"></div>
+
+                        <img src="fan.png" id="Work Room 2-fan_1" class="fan fan-off"
+                            style="top: 22%; left: 50%; margin-left: -20px;">
+                        <img src="fan.png" id="Work Room 2-fan_2" class="fan fan-off"
+                            style="bottom: 25%; left: 50%; margin-left: -20px;">
                     </div>
                 </div>
 
-                <div class="hallway-floor wall h-24 mt-2 relative flex justify-center items-end pb-1">
-                    <span class="text-slate-800 font-bold text-xs uppercase opacity-50 absolute top-2 left-2">Hallway</span>
-                    <div class="text-slate-600 font-bold text-sm bg-slate-300 px-4 py-1 rounded-t-lg border-t-2 border-l-2 border-r-2 border-slate-400">⬆️ ENTRY DOOR</div>
+                <div class="hallway-floor wall h-28 mt-2 relative flex justify-center items-end pb-1 border-t-0">
+                    <span
+                        class="text-slate-700 font-bold text-xs uppercase opacity-60 absolute top-2 left-4">Hallway</span>
                 </div>
             </main>
 
-            <div class="w-full bg-slate-800 p-4 rounded-xl border border-red-900/50 shadow-xl">
-                <h2 class="text-red-400 font-bold mb-3 flex items-center gap-2">⚠️ Active System Alerts</h2>
-                <div id="alerts-container" class="space-y-2 h-32 overflow-y-auto pr-3">
-                    <div class="text-slate-500 text-sm italic">Waiting for anomalies...</div>
+            <div class="w-full bg-white p-4 rounded-xl border border-red-200 shadow-sm">
+                <h2 class="text-red-600 font-bold mb-3 flex items-center gap-2">⚠️ Active System Alerts</h2>
+                <div id="alerts-container" class="space-y-2 h-24 overflow-y-auto pr-3">
+                    <div class="text-slate-400 text-sm italic">Waiting for anomalies...</div>
                 </div>
             </div>
-
         </div>
 
-        <aside class="w-full bg-slate-900 p-6 rounded-xl border border-slate-700 shadow-xl flex flex-col h-[600px]">
-            <h2 class="text-xl font-bold text-slate-300 mb-4 border-b border-slate-700 pb-2 shrink-0">Live Status Panel</h2>
-            
+        <aside class="w-full bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col h-[700px]"
+            style="z-index: 104;" id="sidebar-container">
+            <h2 class="text-xl font-bold text-slate-800 mb-4 border-b border-slate-100 pb-2 shrink-0">Live Status Panel
+            </h2>
             <div class="flex-grow space-y-4 overflow-y-auto pr-3">
-                
-                <div class="bg-slate-800 p-4 rounded-lg border border-slate-700">
-                    <h3 class="font-bold text-sm text-slate-400 uppercase tracking-wider mb-3">Drawing Room</h3>
+
+                <div id="panel-Drawing Room"
+                    class="bg-slate-50 p-4 rounded-lg border border-slate-200 shadow-sm transition-all">
+                    <h3 class="font-bold text-sm text-slate-500 uppercase tracking-wider mb-3 flex justify-between">
+                        Drawing Room <span id="power-Drawing Room" class="text-blue-600 font-mono">0W</span></h3>
                     <div class="space-y-2" id="status-panel-Drawing Room">
-                        <div class="text-slate-500 text-sm italic">Connecting...</div>
+                        <div class="text-slate-400 text-sm">Connecting...</div>
                     </div>
                 </div>
 
-                <div class="bg-slate-800 p-4 rounded-lg border border-slate-700">
-                    <h3 class="font-bold text-sm text-slate-400 uppercase tracking-wider mb-3">Work Room 1</h3>
+                <div id="panel-Work Room 1"
+                    class="bg-slate-50 p-4 rounded-lg border border-slate-200 shadow-sm transition-all">
+                    <h3 class="font-bold text-sm text-slate-500 uppercase tracking-wider mb-3 flex justify-between">Work
+                        Room 1 <span id="power-Work Room 1" class="text-blue-600 font-mono">0W</span></h3>
                     <div class="space-y-2" id="status-panel-Work Room 1">
-                        <div class="text-slate-500 text-sm italic">Connecting...</div>
+                        <div class="text-slate-400 text-sm">Connecting...</div>
                     </div>
                 </div>
 
-                <div class="bg-slate-800 p-4 rounded-lg border border-slate-700">
-                    <h3 class="font-bold text-sm text-slate-400 uppercase tracking-wider mb-3">Work Room 2</h3>
+                <div id="panel-Work Room 2"
+                    class="bg-slate-50 p-4 rounded-lg border border-slate-200 shadow-sm transition-all">
+                    <h3 class="font-bold text-sm text-slate-500 uppercase tracking-wider mb-3 flex justify-between">Work
+                        Room 2 <span id="power-Work Room 2" class="text-blue-600 font-mono">0W</span></h3>
                     <div class="space-y-2" id="status-panel-Work Room 2">
-                        <div class="text-slate-500 text-sm italic">Connecting...</div>
+                        <div class="text-slate-400 text-sm">Connecting...</div>
                     </div>
                 </div>
 
@@ -159,92 +389,1043 @@
     </div>
 
     <script>
+        // ==========================================
+        // 1. THREE.JS 3D ENGINE SETUP
+        // ==========================================
+        let scene, camera, renderer, controls;
+        let is3DActive = false;
+        let currentRoom = "Hallway";
+
+        const threeLights = {};
+        const threeFans = {};
+        let activeFanMeshes = [];
+
+        let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
+        const velocity = new THREE.Vector3();
+        const direction = new THREE.Vector3();
+
+        function init3D() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x87CEEB);
+            scene.fog = new THREE.Fog(0x87CEEB, 0, 500);
+
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 1000);
+            camera.position.y = 10;
+            camera.position.z = 80;
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            document.getElementById('webgl-overlay').appendChild(renderer.domElement);
+
+            controls = new THREE.PointerLockControls(camera, renderer.domElement);
+
+            const overlay = document.getElementById('webgl-overlay');
+            const instructions = document.getElementById('instructions');
+
+            overlay.addEventListener('click', () => { if (is3DActive) controls.lock(); });
+            controls.addEventListener('lock', () => { instructions.style.display = 'none'; });
+            controls.addEventListener('unlock', () => { instructions.style.display = 'block'; });
+
+            const onKeyDown = (event) => {
+                switch (event.code) {
+                    case 'ArrowUp': case 'KeyW': moveForward = true; break;
+                    case 'ArrowLeft': case 'KeyA': moveLeft = true; break;
+                    case 'ArrowDown': case 'KeyS': moveBackward = true; break;
+                    case 'ArrowRight': case 'KeyD': moveRight = true; break;
+                }
+            };
+            const onKeyUp = (event) => {
+                switch (event.code) {
+                    case 'ArrowUp': case 'KeyW': moveForward = false; break;
+                    case 'ArrowLeft': case 'KeyA': moveLeft = false; break;
+                    case 'ArrowDown': case 'KeyS': moveBackward = false; break;
+                    case 'ArrowRight': case 'KeyD': moveRight = false; break;
+                }
+            };
+            document.addEventListener('keydown', onKeyDown);
+            document.addEventListener('keyup', onKeyUp);
+
+            // ==========================================
+            // BUILD THE 3D OFFICE
+            // ==========================================
+            const floorGeo = new THREE.PlaneGeometry(200, 200);
+            const floorMat = new THREE.MeshPhongMaterial({ color: 0xcbd5e1, depthWrite: false });
+            const floor = new THREE.Mesh(floorGeo, floorMat);
+            floor.rotation.x = -Math.PI / 2;
+            scene.add(floor);
+
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+            scene.add(ambientLight);
+
+            const sunLight = new THREE.DirectionalLight(0xfff7c2, 0.5);
+            sunLight.position.set(50, 100, 50);
+            scene.add(sunLight);
+
+            // Wall Material 
+            const wallMat = new THREE.MeshPhongMaterial({ color: 0xe8d5c4 });
+
+            // ----------------------------------------------------
+            // LOAD FAN TEXTURE GLOBALLY 
+            // ----------------------------------------------------
+            const textureLoader = new THREE.TextureLoader();
+            const fanTexture = textureLoader.load('fan.png');
+
+            const fanMaterial = new THREE.MeshBasicMaterial({
+                map: fanTexture,
+                transparent: true,
+                alphaTest: 0.1,
+                side: THREE.DoubleSide
+            });
+
+            function buildRoom(x, z, width, depth, name) {
+                const wallGeoX = new THREE.BoxGeometry(width, 25, 2);
+                const wallGeoZ = new THREE.BoxGeometry(2, 25, depth);
+
+                let w1 = new THREE.Mesh(wallGeoX, wallMat); w1.position.set(x, 12.5, z - depth / 2); scene.add(w1);
+                let w2 = new THREE.Mesh(new THREE.BoxGeometry(width - 15, 25, 2), wallMat); w2.position.set(x - 7.5, 12.5, z + depth / 2); scene.add(w2);
+                let w3 = new THREE.Mesh(wallGeoZ, wallMat); w3.position.set(x - width / 2, 12.5, z); scene.add(w3);
+                let w4 = new THREE.Mesh(wallGeoZ, wallMat); w4.position.set(x + width / 2, 12.5, z); scene.add(w4);
+
+                threeLights[name] = {};
+                threeFans[name] = {};
+
+                const lightPositions = [[x - 10, 24, z - 10], [x + 10, 24, z - 10], [x, 24, z + 10]];
+                for (let i = 1; i <= 3; i++) {
+                    const lGeo = new THREE.SphereGeometry(1.5, 16, 16);
+                    const lMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, emissive: 0x000000 });
+                    const lightMesh = new THREE.Mesh(lGeo, lMat);
+                    lightMesh.position.set(...lightPositions[i - 1]);
+                    scene.add(lightMesh);
+
+                    const pointLight = new THREE.PointLight(0xffd700, 0, 50);
+                    pointLight.position.set(...lightPositions[i - 1]);
+                    scene.add(pointLight);
+
+                    threeLights[name][`light_${i}`] = { mesh: lightMesh, pLight: pointLight };
+                }
+
+                // Create the PNG Planes
+                const fanPositions = [[x, 23, z - 5], [x, 23, z + 5]];
+                for (let i = 1; i <= 2; i++) {
+                    const fanGeo = new THREE.PlaneGeometry(12, 12);
+                    const fanMesh = new THREE.Mesh(fanGeo, fanMaterial);
+
+                    fanMesh.rotation.x = -Math.PI / 2;
+                    fanMesh.position.set(...fanPositions[i - 1]);
+                    scene.add(fanMesh);
+
+                    threeFans[name][`fan_${i}`] = fanMesh;
+                }
+            }
+
+            buildRoom(-40, 0, 38, 40, "Drawing Room");
+            buildRoom(0, 0, 38, 40, "Work Room 1");
+            buildRoom(40, 0, 38, 40, "Work Room 2");
+
+            animate3D();
+        }
+
+        function updateSidebarVisibility() {
+            const pDrawing = document.getElementById('panel-Drawing Room');
+            const pWork1 = document.getElementById('panel-Work Room 1');
+            const pWork2 = document.getElementById('panel-Work Room 2');
+            const hud = document.getElementById('location-hud');
+
+            if (!is3DActive) {
+                pDrawing.style.display = 'block';
+                pWork1.style.display = 'block';
+                pWork2.style.display = 'block';
+                return;
+            }
+
+            const x = camera.position.x;
+            const z = camera.position.z;
+
+            const inDrawingRoom = (x > -59 && x < -21 && z > -20 && z < 20);
+            const inWorkRoom1 = (x > -19 && x < 19 && z > -20 && z < 20);
+            const inWorkRoom2 = (x > 21 && x < 59 && z > -20 && z < 20);
+
+            if (inDrawingRoom) {
+                pDrawing.style.display = 'block'; pWork1.style.display = 'none'; pWork2.style.display = 'none';
+                if (currentRoom !== "Drawing Room") { currentRoom = "Drawing Room"; hud.innerText = "📍 Drawing Room"; }
+            } else if (inWorkRoom1) {
+                pDrawing.style.display = 'none'; pWork1.style.display = 'block'; pWork2.style.display = 'none';
+                if (currentRoom !== "Work Room 1") { currentRoom = "Work Room 1"; hud.innerText = "📍 Work Room 1"; }
+            } else if (inWorkRoom2) {
+                pDrawing.style.display = 'none'; pWork1.style.display = 'none'; pWork2.style.display = 'block';
+                if (currentRoom !== "Work Room 2") { currentRoom = "Work Room 2"; hud.innerText = "📍 Work Room 2"; }
+            } else {
+                pDrawing.style.display = 'block'; pWork1.style.display = 'block'; pWork2.style.display = 'block';
+                if (currentRoom !== "Hallway") { currentRoom = "Hallway"; hud.innerText = "📍 Hallway (All Rooms)"; }
+            }
+        }
+
+        let prevTime = performance.now();
+        function animate3D() {
+            if (!is3DActive) return;
+            requestAnimationFrame(animate3D);
+
+            const time = performance.now();
+            const delta = (time - prevTime) / 1000;
+
+            if (controls.isLocked === true) {
+                velocity.x -= velocity.x * 10.0 * delta;
+                velocity.z -= velocity.z * 10.0 * delta;
+
+                direction.z = Number(moveForward) - Number(moveBackward);
+                direction.x = Number(moveRight) - Number(moveLeft);
+                direction.normalize();
+
+                const speed = 150.0;
+                if (moveForward || moveBackward) velocity.z -= direction.z * speed * delta;
+                if (moveLeft || moveRight) velocity.x -= direction.x * speed * delta;
+
+                controls.moveRight(-velocity.x * delta);
+                controls.moveForward(-velocity.z * delta);
+
+                updateSidebarVisibility();
+            }
+
+            // Spin active fans properly on the Z axis 
+            activeFanMeshes.forEach(fanMesh => { fanMesh.rotation.z -= 5 * delta; });
+
+            prevTime = time;
+            renderer.render(scene, camera);
+        }
+
+        // ==========================================
+        // DASHBOARD TOGGLES & WEBSOCKETS 
+        // ==========================================
+        function enter3DView() {
+            if (!scene) init3D();
+            is3DActive = true;
+            document.getElementById('webgl-overlay').style.display = 'block';
+
+            const sidebar = document.getElementById('sidebar-container');
+            sidebar.style.position = 'fixed';
+            sidebar.style.right = '20px';
+            sidebar.style.top = '20px';
+            sidebar.style.width = '350px';
+
+            animate3D();
+        }
+        function exit3DView() {
+            is3DActive = false;
+            controls.unlock();
+            document.getElementById('webgl-overlay').style.display = 'none';
+
+            const sidebar = document.getElementById('sidebar-container');
+            sidebar.style.position = 'relative';
+            sidebar.style.right = 'auto';
+            sidebar.style.top = 'auto';
+            sidebar.style.width = '100%';
+
+            updateSidebarVisibility();
+        }
+
         const ws = new WebSocket("ws://127.0.0.1:8000/ws");
-        
-        let previousState = {}; 
-        
+
         ws.onmessage = (event) => {
             const data = JSON.parse(event.data);
-            
-            // 1. Update Top Bar
+
             document.getElementById("total-power").innerText = data.total_power_w.toFixed(1) + " W";
             document.getElementById("sim-time").innerText = data.simulated_time;
 
-            // 2. Update Alerts Panel
             const alertsContainer = document.getElementById("alerts-container");
             if (data.alerts.length === 0) {
-                alertsContainer.innerHTML = '<div class="text-green-500 text-sm">✅ All clear. Office hours normal.</div>';
+                alertsContainer.innerHTML = '<div class="text-green-600 text-sm font-medium">✅ All clear. Office hours normal.</div>';
             } else {
-                alertsContainer.innerHTML = data.alerts.map(alert => 
-                    `<div class="bg-red-900/40 text-red-200 p-2 rounded text-sm border border-red-800/50">${alert}</div>`
+                alertsContainer.innerHTML = data.alerts.map(alert =>
+                    `<div class="bg-red-50 text-red-700 p-2 rounded text-sm border border-red-200">${alert}</div>`
                 ).join('');
             }
 
-            // 3. Update Rooms, Floor Plan Devices, and Status Panel
+            activeFanMeshes = [];
+
             for (const [roomName, devices] of Object.entries(data.rooms)) {
-                
                 const powerLabel = document.getElementById(`power-${roomName}`);
                 if (powerLabel) powerLabel.innerText = data.room_power_w[roomName].toFixed(1) + " W";
 
-                if (!previousState[roomName]) previousState[roomName] = {};
-
-                let statusHTML = ""; 
+                let statusHTML = "";
 
                 for (const [deviceName, info] of Object.entries(devices)) {
-                    const currentState = info.status;
-                    const isOn = currentState === "on";
+                    const isOn = info.status === "on";
                     const isFan = deviceName.includes('fan');
                     const cleanName = deviceName.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
-                    
-                    // --- MAP VISUALS ---
-                    const el = document.getElementById(`${roomName}-${deviceName}`);
-                    if (el) {
-                        if (previousState[roomName][deviceName] && previousState[roomName][deviceName] !== currentState) {
-                            el.classList.remove('flash-update');
-                            void el.offsetWidth; 
-                            el.classList.add('flash-update');
-                        }
-                        
-                        previousState[roomName][deviceName] = currentState;
 
-                        el.className = isFan ? 'fan' : 'light'; 
-                        if (el.classList.contains('flash-update')) el.classList.add('flash-update'); 
-                        
-                        if (isOn) {
-                            el.classList.add(isFan ? 'fan-on' : 'light-on');
+                    const el2D = document.getElementById(`${roomName}-${deviceName}`);
+                    if (el2D) {
+                        if (isFan) el2D.className = isOn ? 'fan fan-on' : 'fan fan-off';
+                        else el2D.className = isOn ? 'light light-on' : 'light light-off';
+                    }
+
+                    if (scene) {
+                        if (isFan) {
+                            const fanMesh = threeFans[roomName][deviceName];
+                            if (isOn && fanMesh) activeFanMeshes.push(fanMesh);
                         } else {
-                            el.classList.add(isFan ? 'fan-off' : 'light-off');
+                            const lightObj = threeLights[roomName][deviceName];
+                            if (lightObj) {
+                                if (isOn) {
+                                    lightObj.mesh.material.emissive.setHex(0xffd700);
+                                    lightObj.pLight.intensity = 1.0;
+                                } else {
+                                    lightObj.mesh.material.emissive.setHex(0x000000);
+                                    lightObj.pLight.intensity = 0;
+                                }
+                            }
                         }
                     }
 
-                    // --- STATUS PANEL HTML ---
-                    const badgeColor = isOn ? "bg-green-600 text-white shadow-[0_0_8px_rgba(22,163,74,0.6)]" : "bg-slate-700 text-slate-400";
-                    const textState = isOn ? "ON" : "OFF";
+                    const badgeColor = isOn ? "bg-green-100 text-green-700 border border-green-200" : "bg-slate-200 text-slate-500";
                     const icon = isFan ? "🌀" : "💡";
-
                     statusHTML += `
-                        <div class="flex justify-between items-center bg-slate-900 p-2 rounded border border-slate-700">
-                            <span class="text-slate-300 text-sm flex items-center gap-2">
-                                <span>${icon}</span> ${cleanName}
-                            </span>
-                            <span class="text-xs font-bold px-2 py-1 rounded w-10 text-center uppercase tracking-wide ${badgeColor}">
-                                ${textState}
-                            </span>
+                        <div class="flex justify-between items-center bg-white p-2 rounded border border-slate-200 shadow-sm">
+                            <span class="text-slate-600 text-sm flex items-center gap-2 font-medium"><span>${icon}</span> ${cleanName}</span>
+                            <span class="text-xs font-bold px-2 py-1 rounded w-12 text-center uppercase ${badgeColor}">${isOn ? "ON" : "OFF"}</span>
                         </div>
                     `;
                 }
-
                 const statusPanelEl = document.getElementById(`status-panel-${roomName}`);
-                if (statusPanelEl) {
-                    statusPanelEl.innerHTML = statusHTML;
-                }
+                if (statusPanelEl) statusPanelEl.innerHTML = statusHTML;
             }
         };
 
         ws.onclose = () => {
             document.getElementById("sim-time").innerText = "OFFLINE";
-            document.getElementById("sim-time").classList.replace("bg-blue-900", "bg-red-900");
+            document.getElementById("sim-time").classList.replace("bg-blue-500", "bg-red-500");
         };
     </script>
 </body>
+
+</html> -->
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Office - Live Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/PointerLockControls.js"></script>
+
+    <style>
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 4px;
+            margin-top: 4px;
+            margin-bottom: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        body {
+            background-color: #f8fafc;
+            color: #1e293b;
+            overflow-x: hidden;
+            margin: 0;
+        }
+
+        /* 2D Floor Plan Styles (Beige Walls) */
+        .wall {
+            border: 6px solid #d4b899;
+        }
+
+        .room-floor {
+            background-color: #e2e8f0;
+            position: relative;
+            overflow: hidden;
+            background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+
+        .drawing-room-floor {
+            background-color: #f1f5f9;
+        }
+
+        .work-room-floor {
+            background-color: #e5e7eb;
+        }
+
+        .hallway-floor {
+            background-color: #f8fafc;
+        }
+
+        .desk {
+            width: 45px;
+            height: 35px;
+            background-color: #d97706;
+            border-radius: 2px;
+            border: 2px solid #b45309;
+            box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .chair {
+            width: 20px;
+            height: 20px;
+            background-color: #475569;
+            border-radius: 50%;
+            position: absolute;
+        }
+
+        .sofa {
+            width: 30px;
+            height: 90px;
+            background-color: #94a3b8;
+            border-radius: 5px;
+            border: 2px solid #64748b;
+        }
+
+        .coffee-table {
+            width: 35px;
+            height: 50px;
+            background-color: #78350f;
+            border-radius: 2px;
+        }
+
+        .plant {
+            width: 25px;
+            height: 25px;
+            background-color: #22c55e;
+            border-radius: 50%;
+            border: 2px solid #166534;
+        }
+
+        @keyframes spin {
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .fan {
+            width: 40px;
+            height: 40px;
+            position: absolute;
+            transition: all 0.3s ease;
+            z-index: 20;
+            transform-origin: center;
+            filter: drop-shadow(0px 5px 5px rgba(0, 0, 0, 0.2));
+        }
+
+        .fan-on {
+            animation: spin 0.5s linear infinite;
+            filter: drop-shadow(0 0 12px rgba(59, 130, 246, 0.5)) brightness(1.1);
+        }
+
+        .fan-off {
+            filter: grayscale(100%) opacity(40%);
+        }
+
+        /* Light Styles (Yellow Glow) */
+        .light {
+            width: 24px;
+            height: 24px;
+            background-color: #f1f5f9;
+            border-radius: 50%;
+            position: absolute;
+            transition: all 0.3s ease;
+            z-index: 15;
+            border: 2px solid #ca8a04;
+        }
+
+        .light-on {
+            background-color: #ffd700;
+            box-shadow: 0 0 20px 10px rgba(255, 215, 0, 0.6), inset 0 0 10px #ffffff;
+        }
+
+        .light-off {
+            background-color: #f1f5f9;
+            border-color: #cbd5e1;
+            box-shadow: none;
+            opacity: 0.6;
+        }
+
+        /* 3D WebGL Overlay */
+        #webgl-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: #87CEEB;
+            z-index: 100;
+            display: none;
+        }
+
+        #crosshair {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 20px;
+            height: 20px;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            z-index: 101;
+            color: rgba(0, 0, 0, 0.5);
+            font-size: 24px;
+            font-weight: bold;
+            line-height: 20px;
+            text-align: center;
+        }
+
+        #instructions {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 255, 255, 0.9);
+            padding: 15px;
+            border-radius: 8px;
+            color: #1e293b;
+            text-align: center;
+            z-index: 102;
+            font-family: monospace;
+            border: 1px solid #3b82f6;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Fixed Exit Button: Moved to Bottom Left with High Z-Index */
+        .exit-btn {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            z-index: 105;
+            background: #ef4444;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            border: none;
+            font-size: 1.1rem;
+            transition: background 0.2s;
+        }
+
+        .exit-btn:hover {
+            background: #dc2626;
+        }
+    </style>
+</head>
+
+<body class="p-4 md:p-8 flex flex-col items-center min-h-screen font-sans">
+
+    <div id="webgl-overlay">
+        <div id="instructions">
+            <span class="text-blue-600 font-bold text-lg">Click anywhere to start</span><br />
+            Move: W, A, S, D or Arrows<br />
+            Look: Mouse<br />
+            Exit: ESC
+        </div>
+        <div id="crosshair">+</div>
+
+        <button class="exit-btn" onclick="exit3DView()">🔙 Back to 2D View</button>
+
+        <div id="location-hud"
+            style="position: absolute; top: 20px; left: 20px; z-index: 103; background: rgba(255,255,255,0.9); padding: 10px 20px; border-radius: 8px; border-left: 4px solid #3b82f6; font-weight: bold; color: #1e293b; box-shadow: 0 4px 6px rgba(0,0,0,0.1); font-size: 1.25rem;">
+            📍 Hallway (All Rooms)
+        </div>
+    </div>
+
+    <header
+        class="w-full max-w-7xl flex justify-between items-center mb-6 bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+        <div class="flex items-center gap-4">
+            <img src="bot.png" alt="AI Bot"
+                class="w-14 h-14 rounded-full bg-slate-100 border-2 border-blue-400 shadow-sm object-cover">
+            <div>
+                <h1 class="text-2xl font-bold text-blue-600">Office Live Monitor</h1>
+                <p class="text-sm text-slate-500 mt-1">Simulated Time: <span id="sim-time"
+                        class="font-mono text-white font-bold bg-blue-500 px-2 py-1 rounded">--:--</span></p>
+            </div>
+        </div>
+        <div class="flex items-center gap-6">
+            <button onclick="enter3DView()"
+                class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-6 rounded-lg transition-colors shadow flex items-center gap-2 border border-blue-400">
+                <span>🤖</span> Launch 3D Bot POV
+            </button>
+            <div class="text-right">
+                <h2 class="text-xs uppercase text-slate-400 tracking-wider">Total Power Draw</h2>
+                <div class="text-3xl font-mono text-green-500 font-bold" id="total-power">0.0 W</div>
+            </div>
+        </div>
+    </header>
+
+    <div class="w-full max-w-7xl grid grid-cols-1 xl:grid-cols-4 gap-6">
+
+        <div class="xl:col-span-3 flex flex-col gap-6">
+            <main id="floor-plan-container"
+                class="floor-plan w-full bg-white p-3 rounded-lg shadow-sm wall border-slate-300">
+                <div class="grid grid-cols-3 gap-2 h-[450px]">
+                    <div class="room-floor drawing-room-floor wall flex flex-col p-2">
+                        <span
+                            class="text-slate-700 font-bold text-xs uppercase opacity-80 absolute top-2 left-1/2 transform -translate-x-1/2 z-10 bg-white/80 px-2 py-1 rounded shadow-sm">Drawing
+                            Room</span>
+                        <div class="sofa absolute left-3 top-1/4"></div>
+                        <div class="coffee-table absolute left-14 top-1/3 mt-2"></div>
+                        <div class="plant absolute top-3 left-3"></div>
+
+                        <div id="Drawing Room-light_1" class="light light-off" style="top: 8%; left: 25%;"></div>
+                        <div id="Drawing Room-light_2" class="light light-off" style="top: 8%; right: 25%;"></div>
+                        <div id="Drawing Room-light_3" class="light light-off"
+                            style="bottom: 15%; left: 50%; transform: translateX(-50%);"></div>
+
+                        <img src="fan.png" id="Drawing Room-fan_1" class="fan fan-off"
+                            style="top: 22%; left: 50%; margin-left: -20px;">
+                        <img src="fan.png" id="Drawing Room-fan_2" class="fan fan-off"
+                            style="bottom: 25%; left: 50%; margin-left: -20px;">
+                    </div>
+
+                    <div class="room-floor work-room-floor wall flex flex-col p-2">
+                        <span
+                            class="text-slate-700 font-bold text-xs uppercase opacity-80 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-10 bg-white/80 px-2 py-1 rounded shadow-sm">Work
+                            Room 1</span>
+                        <div class="desk absolute top-20 left-6"></div>
+                        <div class="chair absolute top-22 left-2" style="top: 85px;"></div>
+                        <div class="desk absolute top-20 right-6"></div>
+                        <div class="chair absolute top-22 right-2" style="top: 85px;"></div>
+                        <div class="desk absolute bottom-24 left-6"></div>
+                        <div class="chair absolute bottom-26 left-2" style="bottom: 105px;"></div>
+                        <div class="desk absolute bottom-24 right-6"></div>
+                        <div class="chair absolute bottom-26 right-2" style="bottom: 105px;"></div>
+
+                        <div id="Work Room 1-light_1" class="light light-off" style="top: 8%; left: 25%;"></div>
+                        <div id="Work Room 1-light_2" class="light light-off" style="top: 8%; right: 25%;"></div>
+                        <div id="Work Room 1-light_3" class="light light-off"
+                            style="bottom: 15%; left: 50%; transform: translateX(-50%);"></div>
+
+                        <img src="fan.png" id="Work Room 1-fan_1" class="fan fan-off"
+                            style="top: 22%; left: 50%; margin-left: -20px;">
+                        <img src="fan.png" id="Work Room 1-fan_2" class="fan fan-off"
+                            style="bottom: 25%; left: 50%; margin-left: -20px;">
+                    </div>
+
+                    <div class="room-floor work-room-floor wall flex flex-col p-2">
+                        <span
+                            class="text-slate-700 font-bold text-xs uppercase opacity-80 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-10 bg-white/80 px-2 py-1 rounded shadow-sm">Work
+                            Room 2</span>
+                        <div class="desk absolute top-20 left-6"></div>
+                        <div class="chair absolute top-22 left-2" style="top: 85px;"></div>
+                        <div class="desk absolute top-20 right-6"></div>
+                        <div class="chair absolute top-22 right-2" style="top: 85px;"></div>
+                        <div class="desk absolute bottom-24 left-6"></div>
+                        <div class="chair absolute bottom-26 left-2" style="bottom: 105px;"></div>
+                        <div class="desk absolute bottom-24 right-6"></div>
+                        <div class="chair absolute bottom-26 right-2" style="bottom: 105px;"></div>
+
+                        <div id="Work Room 2-light_1" class="light light-off" style="top: 8%; left: 25%;"></div>
+                        <div id="Work Room 2-light_2" class="light light-off" style="top: 8%; right: 25%;"></div>
+                        <div id="Work Room 2-light_3" class="light light-off"
+                            style="bottom: 15%; left: 50%; transform: translateX(-50%);"></div>
+
+                        <img src="fan.png" id="Work Room 2-fan_1" class="fan fan-off"
+                            style="top: 22%; left: 50%; margin-left: -20px;">
+                        <img src="fan.png" id="Work Room 2-fan_2" class="fan fan-off"
+                            style="bottom: 25%; left: 50%; margin-left: -20px;">
+                    </div>
+                </div>
+
+                <div class="hallway-floor wall h-28 mt-2 relative flex justify-center items-end pb-1 border-t-0">
+                    <span
+                        class="text-slate-700 font-bold text-xs uppercase opacity-60 absolute top-2 left-4">Hallway</span>
+                </div>
+            </main>
+
+            <div class="w-full bg-white p-4 rounded-xl border border-red-200 shadow-sm">
+                <h2 class="text-red-600 font-bold mb-3 flex items-center gap-2">⚠️ Active System Alerts</h2>
+                <div id="alerts-container" class="space-y-2 h-24 overflow-y-auto pr-3">
+                    <div class="text-slate-400 text-sm italic">Waiting for anomalies...</div>
+                </div>
+            </div>
+        </div>
+
+        <aside class="w-full bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col h-[700px]"
+            style="z-index: 104;" id="sidebar-container">
+            <h2 class="text-xl font-bold text-slate-800 mb-4 border-b border-slate-100 pb-2 shrink-0">Live Status Panel
+            </h2>
+            <div class="flex-grow space-y-4 overflow-y-auto pr-3">
+
+                <div id="panel-Drawing Room"
+                    class="bg-slate-50 p-4 rounded-lg border border-slate-200 shadow-sm transition-all">
+                    <h3 class="font-bold text-sm text-slate-500 uppercase tracking-wider mb-3 flex justify-between">
+                        Drawing Room <span id="power-Drawing Room" class="text-blue-600 font-mono">0W</span></h3>
+                    <div class="space-y-2" id="status-panel-Drawing Room">
+                        <div class="text-slate-400 text-sm">Connecting...</div>
+                    </div>
+                </div>
+
+                <div id="panel-Work Room 1"
+                    class="bg-slate-50 p-4 rounded-lg border border-slate-200 shadow-sm transition-all">
+                    <h3 class="font-bold text-sm text-slate-500 uppercase tracking-wider mb-3 flex justify-between">Work
+                        Room 1 <span id="power-Work Room 1" class="text-blue-600 font-mono">0W</span></h3>
+                    <div class="space-y-2" id="status-panel-Work Room 1">
+                        <div class="text-slate-400 text-sm">Connecting...</div>
+                    </div>
+                </div>
+
+                <div id="panel-Work Room 2"
+                    class="bg-slate-50 p-4 rounded-lg border border-slate-200 shadow-sm transition-all">
+                    <h3 class="font-bold text-sm text-slate-500 uppercase tracking-wider mb-3 flex justify-between">Work
+                        Room 2 <span id="power-Work Room 2" class="text-blue-600 font-mono">0W</span></h3>
+                    <div class="space-y-2" id="status-panel-Work Room 2">
+                        <div class="text-slate-400 text-sm">Connecting...</div>
+                    </div>
+                </div>
+
+            </div>
+        </aside>
+
+    </div>
+
+    <script>
+        // ==========================================
+        // 1. THREE.JS 3D ENGINE SETUP
+        // ==========================================
+        let scene, camera, renderer, controls;
+        let is3DActive = false;
+        let currentRoom = "Hallway";
+        let latestData = null; // most recent websocket payload, used to sync the 3D scene immediately on entry
+
+        const threeLights = {};
+        const threeFans = {};
+        let activeFanMeshes = [];
+
+        let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
+        const velocity = new THREE.Vector3();
+        const direction = new THREE.Vector3();
+
+        function init3D() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x87CEEB);
+            scene.fog = new THREE.Fog(0x87CEEB, 0, 500);
+
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 1000);
+            camera.position.y = 10;
+            camera.position.z = 80;
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            document.getElementById('webgl-overlay').appendChild(renderer.domElement);
+
+            controls = new THREE.PointerLockControls(camera, renderer.domElement);
+
+            const overlay = document.getElementById('webgl-overlay');
+            const instructions = document.getElementById('instructions');
+
+            overlay.addEventListener('click', () => { if (is3DActive) controls.lock(); });
+            controls.addEventListener('lock', () => { instructions.style.display = 'none'; });
+            controls.addEventListener('unlock', () => { instructions.style.display = 'block'; });
+
+            const onKeyDown = (event) => {
+                switch (event.code) {
+                    case 'ArrowUp': case 'KeyW': moveForward = true; break;
+                    case 'ArrowLeft': case 'KeyA': moveLeft = true; break;
+                    case 'ArrowDown': case 'KeyS': moveBackward = true; break;
+                    case 'ArrowRight': case 'KeyD': moveRight = true; break;
+                }
+            };
+            const onKeyUp = (event) => {
+                switch (event.code) {
+                    case 'ArrowUp': case 'KeyW': moveForward = false; break;
+                    case 'ArrowLeft': case 'KeyA': moveLeft = false; break;
+                    case 'ArrowDown': case 'KeyS': moveBackward = false; break;
+                    case 'ArrowRight': case 'KeyD': moveRight = false; break;
+                }
+            };
+            document.addEventListener('keydown', onKeyDown);
+            document.addEventListener('keyup', onKeyUp);
+
+            // ==========================================
+            // BUILD THE 3D OFFICE
+            // ==========================================
+            const floorGeo = new THREE.PlaneGeometry(200, 200);
+            const floorMat = new THREE.MeshPhongMaterial({ color: 0xcbd5e1, depthWrite: false });
+            const floor = new THREE.Mesh(floorGeo, floorMat);
+            floor.rotation.x = -Math.PI / 2;
+            scene.add(floor);
+
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+            scene.add(ambientLight);
+
+            const sunLight = new THREE.DirectionalLight(0xfff7c2, 0.5);
+            sunLight.position.set(50, 100, 50);
+            scene.add(sunLight);
+
+            // Wall Material 
+            const wallMat = new THREE.MeshPhongMaterial({ color: 0xe8d5c4 });
+
+            // ----------------------------------------------------
+            // LOAD FAN TEXTURE GLOBALLY 
+            // ----------------------------------------------------
+            const textureLoader = new THREE.TextureLoader();
+            const fanTexture = textureLoader.load('fan.png');
+
+            const fanMaterial = new THREE.MeshBasicMaterial({
+                map: fanTexture,
+                transparent: true,
+                alphaTest: 0.1,
+                side: THREE.DoubleSide
+            });
+
+            function buildRoom(x, z, width, depth, name) {
+                const wallGeoX = new THREE.BoxGeometry(width, 25, 2);
+                const wallGeoZ = new THREE.BoxGeometry(2, 25, depth);
+
+                let w1 = new THREE.Mesh(wallGeoX, wallMat); w1.position.set(x, 12.5, z - depth / 2); scene.add(w1);
+                let w2 = new THREE.Mesh(new THREE.BoxGeometry(width - 15, 25, 2), wallMat); w2.position.set(x - 7.5, 12.5, z + depth / 2); scene.add(w2);
+                let w3 = new THREE.Mesh(wallGeoZ, wallMat); w3.position.set(x - width / 2, 12.5, z); scene.add(w3);
+                let w4 = new THREE.Mesh(wallGeoZ, wallMat); w4.position.set(x + width / 2, 12.5, z); scene.add(w4);
+
+                threeLights[name] = {};
+                threeFans[name] = {};
+
+                const lightPositions = [[x - 10, 24, z - 10], [x + 10, 24, z - 10], [x, 24, z + 10]];
+                for (let i = 1; i <= 3; i++) {
+                    const lGeo = new THREE.SphereGeometry(1.5, 16, 16);
+                    const lMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, emissive: 0x000000 });
+                    const lightMesh = new THREE.Mesh(lGeo, lMat);
+                    lightMesh.position.set(...lightPositions[i - 1]);
+                    scene.add(lightMesh);
+
+                    const pointLight = new THREE.PointLight(0xffd700, 0, 50);
+                    pointLight.position.set(...lightPositions[i - 1]);
+                    scene.add(pointLight);
+
+                    threeLights[name][`light_${i}`] = { mesh: lightMesh, pLight: pointLight };
+                }
+
+                // Create the PNG Planes
+                const fanPositions = [[x, 23, z - 5], [x, 23, z + 5]];
+                for (let i = 1; i <= 2; i++) {
+                    const fanGeo = new THREE.PlaneGeometry(12, 12);
+                    const fanMesh = new THREE.Mesh(fanGeo, fanMaterial);
+
+                    fanMesh.rotation.x = -Math.PI / 2;
+                    fanMesh.position.set(...fanPositions[i - 1]);
+                    scene.add(fanMesh);
+
+                    threeFans[name][`fan_${i}`] = fanMesh;
+                }
+            }
+
+            buildRoom(-40, 0, 38, 40, "Drawing Room");
+            buildRoom(0, 0, 38, 40, "Work Room 1");
+            buildRoom(40, 0, 38, 40, "Work Room 2");
+
+            animate3D();
+        }
+
+        // Applies one device's on/off state to its corresponding 3D mesh/light.
+        // Shared by the live websocket handler and the on-entry resync below,
+        // so both paths always agree on how state maps to appearance.
+        function apply3DDeviceState(roomName, deviceName, isOn, isFan) {
+            if (isFan) {
+                const fanMesh = threeFans[roomName] && threeFans[roomName][deviceName];
+                if (isOn && fanMesh) activeFanMeshes.push(fanMesh);
+            } else {
+                const lightObj = threeLights[roomName] && threeLights[roomName][deviceName];
+                if (lightObj) {
+                    if (isOn) {
+                        lightObj.mesh.material.emissive.setHex(0xffd700);
+                        lightObj.pLight.intensity = 1.0;
+                    } else {
+                        lightObj.mesh.material.emissive.setHex(0x000000);
+                        lightObj.pLight.intensity = 0;
+                    }
+                }
+            }
+        }
+
+        // Re-applies the most recently received snapshot to the 3D scene.
+        // Needed because the 3D objects are only created the first time
+        // enter3DView() runs (inside init3D()/buildRoom()), starting out in
+        // their hardcoded "off" appearance -- without this, the 3D view would
+        // show stale/default state until the next websocket message arrives,
+        // even though the 2D table is already showing the real current state.
+        function resyncAll3D() {
+            if (!latestData || !latestData.rooms) return;
+            activeFanMeshes = [];
+            for (const [roomName, devices] of Object.entries(latestData.rooms)) {
+                for (const [deviceName, info] of Object.entries(devices)) {
+                    const isOn = info.status === "on";
+                    const isFan = deviceName.includes('fan');
+                    apply3DDeviceState(roomName, deviceName, isOn, isFan);
+                }
+            }
+        }
+
+        function updateSidebarVisibility() {
+            const pDrawing = document.getElementById('panel-Drawing Room');
+            const pWork1 = document.getElementById('panel-Work Room 1');
+            const pWork2 = document.getElementById('panel-Work Room 2');
+            const hud = document.getElementById('location-hud');
+
+            if (!is3DActive) {
+                pDrawing.style.display = 'block';
+                pWork1.style.display = 'block';
+                pWork2.style.display = 'block';
+                return;
+            }
+
+            const x = camera.position.x;
+            const z = camera.position.z;
+
+            const inDrawingRoom = (x > -59 && x < -21 && z > -20 && z < 20);
+            const inWorkRoom1 = (x > -19 && x < 19 && z > -20 && z < 20);
+            const inWorkRoom2 = (x > 21 && x < 59 && z > -20 && z < 20);
+
+            if (inDrawingRoom) {
+                pDrawing.style.display = 'block'; pWork1.style.display = 'none'; pWork2.style.display = 'none';
+                if (currentRoom !== "Drawing Room") { currentRoom = "Drawing Room"; hud.innerText = "📍 Drawing Room"; }
+            } else if (inWorkRoom1) {
+                pDrawing.style.display = 'none'; pWork1.style.display = 'block'; pWork2.style.display = 'none';
+                if (currentRoom !== "Work Room 1") { currentRoom = "Work Room 1"; hud.innerText = "📍 Work Room 1"; }
+            } else if (inWorkRoom2) {
+                pDrawing.style.display = 'none'; pWork1.style.display = 'none'; pWork2.style.display = 'block';
+                if (currentRoom !== "Work Room 2") { currentRoom = "Work Room 2"; hud.innerText = "📍 Work Room 2"; }
+            } else {
+                pDrawing.style.display = 'block'; pWork1.style.display = 'block'; pWork2.style.display = 'block';
+                if (currentRoom !== "Hallway") { currentRoom = "Hallway"; hud.innerText = "📍 Hallway (All Rooms)"; }
+            }
+        }
+
+        let prevTime = performance.now();
+        function animate3D() {
+            if (!is3DActive) return;
+            requestAnimationFrame(animate3D);
+
+            const time = performance.now();
+            const delta = (time - prevTime) / 1000;
+
+            if (controls.isLocked === true) {
+                velocity.x -= velocity.x * 10.0 * delta;
+                velocity.z -= velocity.z * 10.0 * delta;
+
+                direction.z = Number(moveForward) - Number(moveBackward);
+                direction.x = Number(moveRight) - Number(moveLeft);
+                direction.normalize();
+
+                const speed = 150.0;
+                if (moveForward || moveBackward) velocity.z -= direction.z * speed * delta;
+                if (moveLeft || moveRight) velocity.x -= direction.x * speed * delta;
+
+                controls.moveRight(-velocity.x * delta);
+                controls.moveForward(-velocity.z * delta);
+
+                updateSidebarVisibility();
+            }
+
+            // Spin active fans properly on the Z axis 
+            activeFanMeshes.forEach(fanMesh => { fanMesh.rotation.z -= 5 * delta; });
+
+            prevTime = time;
+            renderer.render(scene, camera);
+        }
+
+        // ==========================================
+        // DASHBOARD TOGGLES & WEBSOCKETS 
+        // ==========================================
+        function enter3DView() {
+            if (!scene) init3D();
+            resyncAll3D();
+            is3DActive = true;
+            document.getElementById('webgl-overlay').style.display = 'block';
+
+            const sidebar = document.getElementById('sidebar-container');
+            sidebar.style.position = 'fixed';
+            sidebar.style.right = '20px';
+            sidebar.style.top = '20px';
+            sidebar.style.width = '350px';
+
+            animate3D();
+        }
+        function exit3DView() {
+            is3DActive = false;
+            controls.unlock();
+            document.getElementById('webgl-overlay').style.display = 'none';
+
+            const sidebar = document.getElementById('sidebar-container');
+            sidebar.style.position = 'relative';
+            sidebar.style.right = 'auto';
+            sidebar.style.top = 'auto';
+            sidebar.style.width = '100%';
+
+            updateSidebarVisibility();
+        }
+
+        const ws = new WebSocket("ws://127.0.0.1:8000/ws");
+
+        ws.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            latestData = data; // cache for resyncAll3D() when 3D view is (re)entered
+
+            document.getElementById("total-power").innerText = data.total_power_w.toFixed(1) + " W";
+            document.getElementById("sim-time").innerText = data.simulated_time;
+
+            const alertsContainer = document.getElementById("alerts-container");
+            if (data.alerts.length === 0) {
+                alertsContainer.innerHTML = '<div class="text-green-600 text-sm font-medium">✅ All clear. Office hours normal.</div>';
+            } else {
+                alertsContainer.innerHTML = data.alerts.map(alert =>
+                    `<div class="bg-red-50 text-red-700 p-2 rounded text-sm border border-red-200">${alert}</div>`
+                ).join('');
+            }
+
+            activeFanMeshes = [];
+
+            for (const [roomName, devices] of Object.entries(data.rooms)) {
+                const powerLabel = document.getElementById(`power-${roomName}`);
+                if (powerLabel) powerLabel.innerText = data.room_power_w[roomName].toFixed(1) + " W";
+
+                let statusHTML = "";
+
+                for (const [deviceName, info] of Object.entries(devices)) {
+                    const isOn = info.status === "on";
+                    const isFan = deviceName.includes('fan');
+                    const cleanName = deviceName.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
+
+                    const el2D = document.getElementById(`${roomName}-${deviceName}`);
+                    if (el2D) {
+                        if (isFan) el2D.className = isOn ? 'fan fan-on' : 'fan fan-off';
+                        else el2D.className = isOn ? 'light light-on' : 'light light-off';
+                    }
+
+                    if (scene) {
+                        apply3DDeviceState(roomName, deviceName, isOn, isFan);
+                    }
+
+                    const badgeColor = isOn ? "bg-green-100 text-green-700 border border-green-200" : "bg-slate-200 text-slate-500";
+                    const icon = isFan ? "🌀" : "💡";
+                    statusHTML += `
+                        <div class="flex justify-between items-center bg-white p-2 rounded border border-slate-200 shadow-sm">
+                            <span class="text-slate-600 text-sm flex items-center gap-2 font-medium"><span>${icon}</span> ${cleanName}</span>
+                            <span class="text-xs font-bold px-2 py-1 rounded w-12 text-center uppercase ${badgeColor}">${isOn ? "ON" : "OFF"}</span>
+                        </div>
+                    `;
+                }
+                const statusPanelEl = document.getElementById(`status-panel-${roomName}`);
+                if (statusPanelEl) statusPanelEl.innerHTML = statusHTML;
+            }
+        };
+
+        ws.onclose = () => {
+            document.getElementById("sim-time").innerText = "OFFLINE";
+            document.getElementById("sim-time").classList.replace("bg-blue-500", "bg-red-500");
+        };
+    </script>
+</body>
+
 </html>
